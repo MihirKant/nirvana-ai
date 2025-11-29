@@ -1,0 +1,12 @@
+ollama
+colorama
+flask
+duckduckgo-search
+requests
+AppOpener
+psutil
+youtube-transcript-api
+opencv-python
+Pillow
+pytesseract
+beautifulsoup4
