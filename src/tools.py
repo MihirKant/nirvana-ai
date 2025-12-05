@@ -65,9 +65,13 @@ def get_morning_briefing():
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         hn = requests.get("https://news.ycombinator.com/", headers=headers)
         soup = BeautifulSoup(hn.text, 'html.parser')
-        headlines = [item.text for item in soup.select('.titleline > a')[:5]]
+        headlines = []
+        for item in soup.select('.titleline > a')[:5]:
+            title = item.text
+            link = item.get('href')
+            headlines.append(f"- {title}: {link}")
         
-        news = "Top Tech News:\n" + "\n".join([f"- {h}" for h in headlines])
+        news = "Top Tech News:\n" + "\n".join(headlines)
         return news
     except Exception as e: return f"Error getting briefing: {e}"
 
@@ -87,7 +91,7 @@ def draft_email(to, subject, body):
 
 def system_health():
     try:
-        cpu = psutil.cpu_percent(interval=1)
+        cpu = psutil.cpu_percent(interval=0)
         ram = psutil.virtual_memory().percent
         battery = psutil.sensors_battery()
         bat_stat = f"{battery.percent}% ({'Plugged In' if battery.power_plugged else 'On Battery'})" if battery else "No Battery"

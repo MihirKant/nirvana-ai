@@ -1,6 +1,7 @@
 ollama
 colorama
 flask
+flask-cors
 duckduckgo-search
 requests
 AppOpener

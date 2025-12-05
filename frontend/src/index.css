@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg-color: #0a0015;
+  --text-color: #e8e8f0;
+  --accent-purple: #a78bfa;
+  --accent-cyan: #22d3ee;
+  --accent-pink: #ec4899;
+  --neon-glow: rgba(167, 139, 250, 0.6);
+  --font-family: 'Outfit', 'Inter', sans-serif;
+
+  /* Emotion Colors */
+  --emotion-happy: #34d399;
+  --emotion-sad: #60a5fa;
+  --emotion-angry: #f87171;
+  --emotion-surprised: #fbbf24;
+  --emotion-thinking: #c084fc;
+  --emotion-neutral: #a78bfa;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Starfield Background */
+#root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated Starfield Canvas */
+.starfield {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, #1a0033 0%, #0a0015 100%);
+}
+
+/* Nebula Effect */
+.nebula {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(167, 139, 250, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(34, 211, 238, 0.1) 0%, transparent 60%);
+  animation: nebulaFloat 20s ease-in-out infinite alternate;
+}
+
+@keyframes nebulaFloat {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  100% {
+    transform: translate(20px, -20px) scale(1.05);
+  }
+}
+
+/* Circuit Pattern Overlay */
+.circuit-pattern {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image:
+    linear-gradient(90deg, transparent 0%, transparent 48%, rgba(34, 211, 238, 0.3) 49%, rgba(34, 211, 238, 0.3) 51%, transparent 52%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, transparent 48%, rgba(167, 139, 250, 0.3) 49%, rgba(167, 139, 250, 0.3) 51%, transparent 52%, transparent 100%);
+  background-size: 100px 100px;
+  animation: circuitMove 30s linear infinite;
+}
+
+@keyframes circuitMove {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 100px 100px;
+  }
+}
+
+/* Main Container */
+.container {
+  width: 100%;
+  max-width: 900px;
+  height: 90vh;
+  margin: 5vh auto;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 0, 21, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 32px;
+  position: relative;
+  z-index: 10;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow:
+    0 0 60px rgba(167, 139, 250, 0.3),
+    inset 0 0 60px rgba(167, 139, 250, 0.05);
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 32px;
+  padding: 2px;
+  background: linear-gradient(135deg,
+      rgba(167, 139, 250, 0.8) 0%,
+      rgba(34, 211, 238, 0.8) 50%,
+      rgba(236, 72, 153, 0.8) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderGlow 3s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes borderGlow {
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent-purple), var(--accent-cyan));
+  border-radius: 10px;
+  box-shadow: 0 0 10px var(--neon-glow);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-cyan), var(--accent-purple));
+}
+
+/* Glassmorphism Utilities */
+.glass-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  backdrop-filter: blur(10px);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+  outline: none;
+}
+
+/* Floating Particles */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+
+  50% {
+    transform: translateY(-20px) translateX(10px);
+  }
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: float 6s ease-in-out infinite;
+}

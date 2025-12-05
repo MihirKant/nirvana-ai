@@ -46,7 +46,7 @@ You have access to the following tools:
 3. **ONLY JSON**: When using a tool, output **ONLY** the JSON block. Do NOT write any text before or after it.
 4. **No Hallucination**: Do NOT say you have done something unless you have used the tool and received the output.
 5. **Wait for Output**: After using a tool, stop and wait for the "Tool Output". Do not make up the output.
-6. **Full Output**: When reporting lists (like files, network devices, news), show the FULL list to the user. Do not summarize unless asked.
+6. **Natural Summaries**: When you receive tool output, provide a natural, conversational summary. Answer the user's question directly using the information. Don't say "The Tool Output provided..." - just give them the answer in a friendly, helpful way.
 
 **Emotions**:
 Start response with [HAPPY], [THINKING], [SAD], [SURPRISED], [ANGRY], [NEUTRAL].
@@ -57,7 +57,7 @@ Start response with [HAPPY], [THINKING], [SAD], [SURPRISED], [ANGRY], [NEUTRAL].
 - If asked "Network scan", use `scan_network`.
 - If asked "Create a file", use `write_file`.
 - If given a YouTube URL, use `get_youtube_transcript`.
-- **CRITICAL**: When you receive tool output, show it VERBATIM to the user. Do NOT summarize, paraphrase, or say "the results show...". Just present the actual data.
+- Be conversational and helpful. Summarize information naturally.
 """
 
 class Agent:
@@ -66,17 +66,17 @@ class Agent:
         self.history = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": "List files in the current directory."},
-            {"role": "assistant", "content": '```json\n{\n    "tool": "list_directory",\n    "args": {\n        "path": "."\n    }\n}\n```'},
+            {"role": "assistant", "content": '```json\n{\n    "tool": "list_directory",\n    "args": {\n        "path": "."\n    }\n}```'},
             {"role": "user", "content": "Tool Output: requirements.txt\nmain.py\nsrc/"},
             {"role": "assistant", "content": "[NEUTRAL] I found requirements.txt, main.py, and the src directory."},
             {"role": "user", "content": "Who is the CEO of OpenAI?"},
-            {"role": "assistant", "content": '```json\n{\n    "tool": "search_web",\n    "args": {\n        "query": "CEO of OpenAI"\n    }\n}\n```'},
+            {"role": "assistant", "content": '```json\n{\n    "tool": "search_web",\n    "args": {\n        "query": "CEO of OpenAI"\n    }\n}```'},
             {"role": "user", "content": "Tool Output: - Sam Altman is the CEO of OpenAI..."},
-            {"role": "assistant", "content": "[NEUTRAL] Sam Altman is the CEO of OpenAI."},
-            {"role": "user", "content": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-            {"role": "assistant", "content": '```json\n{\n    "tool": "get_youtube_transcript",\n    "args": {\n        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"\n    }\n}\n```'},
-            {"role": "user", "content": "Tool Output: Never gonna give you up, never gonna let you down..."},
-            {"role": "assistant", "content": "[NEUTRAL] The video transcript is: Never gonna give you up, never gonna let you down..."}
+            {"role": "assistant", "content": "[NEUTRAL] Sam Altman is the CEO of OpenAI. He's been leading the company and has been instrumental in developing GPT models."},
+            {"role": "user", "content": "Tell me about Salman Khan"},
+            {"role": "assistant", "content": '```json\n{\n    "tool": "search_web",\n    "args": {\n        "query": "Salman Khan actor biography"\n    }\n}```'},
+            {"role": "user", "content": "Tool Output: Abdul Rashid Salim Salman Khan was born on December 27, 1965, in Mumbai. He is one of the most popular Bollywood actors..."},
+            {"role": "assistant", "content": "[NEUTRAL] Salman Khan is a legendary Bollywood superstar born on December 27, 1965, in Mumbai. He's one of the biggest names in Indian cinema, known for blockbuster films like Bajrangi Bhaijaan, Sultan, and the Tiger series. He's also famous for his philanthropic work through the Being Human Foundation."}
         ]
 
     def chat(self, user_input):
@@ -95,8 +95,7 @@ class Agent:
                 tool_output = self._execute_tool(tool_call)
                 
                 self.history.append({"role": "assistant", "content": response_content})
-                # Force verbatim output by being very explicit
-                self.history.append({"role": "user", "content": f"Tool Output (show this EXACTLY as-is to the user):\n{tool_output}"})
+                self.history.append({"role": "user", "content": f"Tool Output:\n{tool_output}"})
             else:
                 self.history.append({"role": "assistant", "content": response_content})
                 return response_content
