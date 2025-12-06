@@ -6,11 +6,13 @@ import webbrowser
 import psutil
 import cv2
 import pytesseract
+import time
 from PIL import Image
 from duckduckgo_search import DDGS
 from AppOpener import open as open_app
 from youtube_transcript_api import YouTubeTranscriptApi
 from bs4 import BeautifulSoup
+import yt_dlp
 
 # --- Basic Tools ---
 def run_terminal_command(command):
@@ -43,14 +45,27 @@ def list_directory(path="."):
 # --- Web & Info ---
 def search_web(query):
     try:
-        results = DDGS().text(query, max_results=5)
-        return "\n".join([f"- {r['title']}: {r['href']}\n  {r['body']}" for r in results]) if results else "No results."
-    except Exception as e: return f"Error: {e}"
+        # Add timeout and better error handling
+        results = list(DDGS().text(query, max_results=5))
+        if not results:
+            return "No results found."
+        output = []
+        for r in results:
+            output.append(f"- {r.get('title', 'No title')}: {r.get('href', '')}\n  {r.get('body', '')}")
+        return "\n".join(output)
+    except Exception as e:
+        return f"Error searching web: {str(e)}"
 
 def get_weather(city):
     try:
-        return requests.get(f"https://wttr.in/{city}?format=3").text.strip()
-    except Exception as e: return f"Error: {e}"
+        # Use http instead of https to avoid SSL issues
+        response = requests.get(f"http://wttr.in/{city}?format=3", timeout=10)
+        if response.status_code == 200:
+            return response.text.strip()
+        else:
+            return f"Could not fetch weather for {city}. Status: {response.status_code}"
+    except Exception as e:
+        return f"Error fetching weather: {str(e)}"
 
 def get_youtube_transcript(url):
     try:
@@ -151,25 +166,109 @@ def get_wifi_password(ssid):
 # --- Visual ---
 def security_cam_snapshot():
     try:
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened(): return "Could not open webcam."
-        ret, frame = cap.read()
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Use DirectShow on Windows
+        if not cap.isOpened():
+            return "Could not open webcam. Make sure no other app is using it."
+        
+        # Give camera time to warm up
+        time.sleep(0.5)
+        
+        # Try multiple captures
+        ret, frame = None, None
+        for i in range(5):
+            ret, frame = cap.read()
+            if ret:
+                break
+            time.sleep(0.2)
+        
         cap.release()
-        if ret:
+        
+        if ret and frame is not None:
             path = "snapshot.jpg"
             cv2.imwrite(path, frame)
             return f"Snapshot saved to {os.path.abspath(path)}"
-        return "Failed to capture image."
-    except Exception as e: return f"Error: {e}"
+        return "Failed to capture image. Camera may be in use by another application."
+    except Exception as e:
+        return f"Error capturing snapshot: {str(e)}"
 
 def read_screen():
     try:
-        # Requires pyautogui for screenshot, let's add it or use PIL ImageGrab
         from PIL import ImageGrab
         screenshot = ImageGrab.grab()
         text = pytesseract.image_to_string(screenshot)
-        return f"Screen Text:\n{text.strip()[:1000]}" # Limit text
-    except Exception as e: return f"Error reading screen (ensure Tesseract is installed): {e}"
+        
+        # Clean up the text
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        cleaned_text = '\n'.join(lines)
+        
+        if not cleaned_text:
+            return "No readable text found on screen."
+        
+        # Limit to 1000 characters
+        return f"Screen Text:\n{cleaned_text[:1000]}"
+    except Exception as e:
+        return f"Error reading screen (ensure Tesseract is installed): {str(e)}"
+
+# --- YouTube Downloader ---
+def download_youtube_video(url, quality="best", output_path="."):
+    """
+    Download YouTube video using yt-dlp
+    quality: 'best', 'worst', '720p', '1080p', 'audio_only'
+    """
+    try:
+        # Check if FFmpeg is available
+        ffmpeg_available = shutil.which('ffmpeg') is not None
+        
+        # Configure yt-dlp options
+        ydl_opts = {
+            'outtmpl': os.path.join(output_path, '%(title)s.%(ext)s'),
+            'quiet': False,
+            'no_warnings': False,
+        }
+        
+        # Set quality options based on FFmpeg availability
+        if quality == 'audio_only':
+            if ffmpeg_available:
+                ydl_opts['format'] = 'bestaudio/best'
+                ydl_opts['postprocessors'] = [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }]
+            else:
+                # Download best audio without conversion
+                ydl_opts['format'] = 'bestaudio/best'
+        elif quality == '720p':
+            if ffmpeg_available:
+                ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best[height<=720]'
+            else:
+                # Download pre-merged format at 720p or lower
+                ydl_opts['format'] = 'best[height<=720]/best'
+        elif quality == '1080p':
+            if ffmpeg_available:
+                ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
+            else:
+                # Download pre-merged format at 1080p or lower
+                ydl_opts['format'] = 'best[height<=1080]/best'
+        elif quality == 'worst':
+            ydl_opts['format'] = 'worst'
+        else:  # best
+            if ffmpeg_available:
+                ydl_opts['format'] = 'bestvideo+bestaudio/best'
+            else:
+                # Download best pre-merged format
+                ydl_opts['format'] = 'best'
+        
+        # Download the video
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
+            title = info.get('title', 'Unknown')
+            
+        ffmpeg_note = "" if ffmpeg_available else "\n\nNote: FFmpeg not detected. Downloaded pre-merged format. For better quality options, install FFmpeg: https://ffmpeg.org/download.html"
+        return f"Successfully downloaded: {title}\nSaved to: {os.path.abspath(filename)}{ffmpeg_note}"
+    except Exception as e:
+        return f"Error downloading video: {str(e)}"
 
 AVAILABLE_TOOLS = {
     "run_terminal_command": run_terminal_command,
@@ -188,5 +287,6 @@ AVAILABLE_TOOLS = {
     "scan_network": scan_network,
     "get_wifi_password": get_wifi_password,
     "security_cam_snapshot": security_cam_snapshot,
-    "read_screen": read_screen
+    "read_screen": read_screen,
+    "download_youtube_video": download_youtube_video
 }
