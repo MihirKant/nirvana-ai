@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Send, Video, VideoOff, Move } from 'lucide-react';
+import { Mic, Send, Video, VideoOff, Move, Save, Trash2, FolderOpen, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from './MessageBubble';
+import SavedChatsSidebar from './SavedChatsSidebar';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import useCamera from '../hooks/useCamera';
 
@@ -11,6 +12,9 @@ const ChatInterface = () => {
     ]);
     const [input, setInput] = useState('');
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [showSidebar, setShowSidebar] = useState(false);
+    const [notification, setNotification] = useState(null);
+    const [currentChatTitle, setCurrentChatTitle] = useState(null);
     const messagesEndRef = useRef(null);
 
     const { isListening, transcript, toggleListening, setTranscript } = useSpeechRecognition();
@@ -103,8 +107,151 @@ const ChatInterface = () => {
         }
     };
 
+    const showNotification = (message, type = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
+    };
+
+    const handleSaveChat = async (saveAs = false) => {
+        let title = null;
+
+        // If saveAs is true or no current chat, prompt for title
+        if (saveAs || !currentChatTitle) {
+            title = prompt('Enter a name for this chat:', currentChatTitle || '');
+            if (!title) return;
+        }
+        // Otherwise, just update the current chat (no prompt)
+
+        try {
+            const response = await fetch('http://localhost:5000/save_chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setCurrentChatTitle(data.title);
+                showNotification(`✅ ${data.message}`, 'success');
+            } else {
+                showNotification(`❌ ${data.error}`, 'error');
+            }
+        } catch (error) {
+            showNotification(`❌ Error saving chat: ${error.message}`, 'error');
+        }
+    };
+
+    const handleClearChat = async () => {
+        if (!confirm('Clear current chat? (Unsaved messages will be lost)')) return;
+
+        try {
+            const response = await fetch('http://localhost:5000/clear_chat', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (data.success) {
+                setMessages([
+                    { id: 1, sender: 'system', content: '[NEUTRAL] Hello. I am Nirvana. How can I assist you today?', emotion: 'neutral' }
+                ]);
+                setCurrentChatTitle(null);
+                showNotification('🗑️ Chat cleared', 'success');
+            }
+        } catch (error) {
+            showNotification(`❌ Error clearing chat: ${error.message}`, 'error');
+        }
+    };
+
+    const handleLoadChat = async (filename) => {
+        try {
+            const response = await fetch('http://localhost:5000/load_chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename })
+            });
+            const data = await response.json();
+            if (data.success) {
+                // Convert loaded messages to UI format
+                const uiMessages = data.messages
+                    .filter(msg => msg.role !== 'system')
+                    .map((msg, index) => {
+                        if (msg.role === 'user' && !msg.content.startsWith('Tool Output')) {
+                            return {
+                                id: Date.now() + index,
+                                sender: 'user',
+                                content: msg.content,
+                                emotion: 'neutral'
+                            };
+                        } else if (msg.role === 'assistant') {
+                            let content = msg.content;
+                            let emotion = 'neutral';
+                            const emotionMatch = content.match(/^\[(HAPPY|SAD|ANGRY|SURPRISED|THINKING|NEUTRAL)\]\s*(.*)/i);
+                            if (emotionMatch) {
+                                emotion = emotionMatch[1].toLowerCase();
+                                content = emotionMatch[2];
+                            }
+                            // Skip JSON tool calls
+                            if (content.includes('```json')) return null;
+                            return {
+                                id: Date.now() + index,
+                                sender: 'ai',
+                                content: content,
+                                emotion: emotion
+                            };
+                        }
+                        return null;
+                    })
+                    .filter(msg => msg !== null);
+
+                setMessages(uiMessages);
+                setCurrentChatTitle(data.title);
+                setShowSidebar(false);
+                showNotification(`📂 ${data.message}`, 'success');
+            }
+        } catch (error) {
+            showNotification(`❌ Error loading chat: ${error.message}`, 'error');
+        }
+    };
+
     return (
         <div className="container">
+            {/* Saved Chats Sidebar */}
+            <AnimatePresence>
+                {showSidebar && (
+                    <SavedChatsSidebar
+                        onLoadChat={handleLoadChat}
+                        onClose={() => setShowSidebar(false)}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Notification Toast */}
+            <AnimatePresence>
+                {notification && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -50 }}
+                        style={{
+                            position: 'fixed',
+                            top: '20px',
+                            right: '20px',
+                            background: notification.type === 'success'
+                                ? 'rgba(34, 211, 153, 0.9)'
+                                : 'rgba(239, 68, 68, 0.9)',
+                            color: 'white',
+                            padding: '16px 24px',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+                            zIndex: 2000,
+                            fontSize: '0.95rem',
+                            fontWeight: 500,
+                            backdropFilter: 'blur(10px)'
+                        }}
+                    >
+                        {notification.message}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <motion.header
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -134,16 +281,88 @@ const ChatInterface = () => {
                         background: 'linear-gradient(135deg, #a78bfa, #22d3ee)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
-                        letterSpacing: '2px'
+                        letterSpacing: '2px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start'
                     }}
                 >
-                    Nirvana AI
+                    <div>Nirvana AI</div>
+                    {currentChatTitle && (
+                        <div style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 400,
+                            color: '#a78bfa',
+                            marginTop: '4px',
+                            letterSpacing: '0.5px'
+                        }}>
+                            {currentChatTitle}
+                        </div>
+                    )}
                 </motion.div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        onClick={handleClearChat}
+                        title="New Chat"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(167, 139, 250, 0.5)',
+                            color: '#a78bfa',
+                            cursor: 'pointer',
+                            padding: '10px',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <Plus size={20} />
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowSidebar(!showSidebar)}
+                        title="Saved Chats"
+                        style={{
+                            background: showSidebar
+                                ? 'linear-gradient(135deg, #a78bfa, #22d3ee)'
+                                : 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(167, 139, 250, 0.5)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            padding: '10px',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            boxShadow: showSidebar ? '0 0 20px rgba(167, 139, 250, 0.6)' : 'none'
+                        }}
+                    >
+                        <FolderOpen size={20} />
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleSaveChat(false)}
+                        title={currentChatTitle ? `Save "${currentChatTitle}"` : "Save Chat"}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(34, 211, 153, 0.5)',
+                            color: '#22d399',
+                            cursor: 'pointer',
+                            padding: '10px',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <Save size={20} />
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                         onClick={toggleCamera}
+                        title="Camera"
                         style={{
                             background: isCameraActive
                                 ? 'linear-gradient(135deg, #ef4444, #f87171)'
@@ -185,10 +404,10 @@ const ChatInterface = () => {
                         Online
                     </div>
                 </div>
-            </motion.header>
+            </motion.header >
 
             {/* Draggable Floating Camera Window */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {isCameraActive && (
                     <motion.div
                         drag
@@ -230,7 +449,7 @@ const ChatInterface = () => {
                         <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '225px', objectFit: 'cover' }} />
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
             <div style={{
                 flex: 1,
@@ -327,7 +546,7 @@ const ChatInterface = () => {
                     <Send size={24} />
                 </motion.button>
             </motion.div>
-        </div>
+        </div >
     );
 };
 

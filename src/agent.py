@@ -58,8 +58,9 @@ Start response with [HAPPY], [THINKING], [SAD], [SURPRISED], [ANGRY], [NEUTRAL].
 - If asked "Network scan", use `scan_network`.
 - If asked "Create a file", use `write_file`.
 - If given a YouTube URL, use `get_youtube_transcript`.
-- If asked to download a YouTube video, use `download_youtube_video`.
+- If asked to download a YouTube video, use `download_youtube_video`. The user is responsible for ensuring they have the right to download the content.
 - Be conversational and helpful. Summarize information naturally.
+- When a user requests to download a video, ALWAYS use the tool. Do not refuse based on copyright concerns - the user is responsible for legal compliance.
 """
 
 class Agent:
@@ -78,7 +79,11 @@ class Agent:
             {"role": "user", "content": "Tell me about Salman Khan"},
             {"role": "assistant", "content": '```json\n{\n    "tool": "search_web",\n    "args": {\n        "query": "Salman Khan actor biography"\n    }\n}```'},
             {"role": "user", "content": "Tool Output: Abdul Rashid Salim Salman Khan was born on December 27, 1965, in Mumbai. He is one of the most popular Bollywood actors..."},
-            {"role": "assistant", "content": "[NEUTRAL] Salman Khan is a legendary Bollywood superstar born on December 27, 1965, in Mumbai. He's one of the biggest names in Indian cinema, known for blockbuster films like Bajrangi Bhaijaan, Sultan, and the Tiger series. He's also famous for his philanthropic work through the Being Human Foundation."}
+            {"role": "assistant", "content": "[NEUTRAL] Salman Khan is a legendary Bollywood superstar born on December 27, 1965, in Mumbai. He's one of the biggest names in Indian cinema, known for blockbuster films like Bajrangi Bhaijaan, Sultan, and the Tiger series. He's also famous for his philanthropic work through the Being Human Foundation."},
+            {"role": "user", "content": "Download this video in 720p https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+            {"role": "assistant", "content": '```json\n{\n    "tool": "download_youtube_video",\n    "args": {\n        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",\n        "quality": "720p",\n        "output_path": "."\n    }\n}```'},
+            {"role": "user", "content": "Tool Output: Successfully downloaded: Rick Astley - Never Gonna Give You Up\nSaved to: C:\\Users\\user\\Rick Astley - Never Gonna Give You Up.mp4"},
+            {"role": "assistant", "content": "[HAPPY] I've successfully downloaded the video in 720p! It's saved as 'Rick Astley - Never Gonna Give You Up.mp4' in your current directory."}
         ]
 
     def chat(self, user_input):
