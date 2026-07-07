@@ -1,13 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Force UTF-8 encoding for console output to properly show emojis
-chcp 65001 >nul
-
 cd /d "%~dp0"
 
 echo ==========================================================
-echo   🧘‍♂️  NIRVANA AI - LOCAL ASSISTANT LAUNCHER  🧘‍♂️
+echo   NIRVANA AI - LOCAL ASSISTANT LAUNCHER
 echo ==========================================================
 echo.
 
@@ -71,11 +68,11 @@ if not exist frontend\node_modules (
 :: Step 6: Start the servers and open the browser
 echo.
 echo ==========================================================
-echo 🚀 Launching servers and opening browser...
+echo Launching servers and opening browser...
 echo ==========================================================
 echo.
-echo 📍 Backend Server:  http://localhost:5000
-echo 📍 Frontend Server: http://localhost:5173
+echo Backend Server:  http://localhost:5000
+echo Frontend Server: http://localhost:5173
 echo.
 echo [NOTE] Press Ctrl+C in this command window to stop both servers.
 echo ==========================================================
@@ -83,7 +80,7 @@ echo.
 
 :: Start a background task to wait 3 seconds (giving the servers time to boot)
 :: and then automatically open the default browser to the web UI.
-start /b cmd /c "timeout /t 3 >nul && start http://localhost:5173"
+start /b cmd /c "ping 127.0.0.1 -n 4 >nul && start http://localhost:5173"
 
 :: Run the Flask and Vite servers (blocks until exit)
 python app.py
