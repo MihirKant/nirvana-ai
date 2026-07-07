@@ -12,7 +12,7 @@ const SavedChatsSidebar = ({ onLoadChat, onClose }) => {
 
     const loadSavedChats = async () => {
         try {
-            const response = await fetch('http://localhost:5000/list_chats');
+            const response = await fetch('/list_chats');
             const data = await response.json();
             setSavedChats(data.chats || []);
         } catch (error) {
@@ -27,7 +27,7 @@ const SavedChatsSidebar = ({ onLoadChat, onClose }) => {
         if (!confirm('Delete this chat?')) return;
 
         try {
-            await fetch('http://localhost:5000/delete_chat', {
+            await fetch('/delete_chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename })

@@ -17,9 +17,6 @@ const useCamera = () => {
                         }
                     });
                     setStream(mediaStream);
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = mediaStream;
-                    }
                 } catch (err) {
                     console.error("Camera error:", err);
                     setIsCameraActive(false);
@@ -31,11 +28,14 @@ const useCamera = () => {
                 stream.getTracks().forEach(track => track.stop());
                 setStream(null);
             }
-            if (videoRef.current) {
-                videoRef.current.srcObject = null;
-            }
         }
     }, [isCameraActive]);
+
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+        }
+    }, [stream]);
 
     const toggleCamera = () => {
         setIsCameraActive(prev => !prev);

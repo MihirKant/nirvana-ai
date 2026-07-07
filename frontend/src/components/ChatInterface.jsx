@@ -123,7 +123,7 @@ const ChatInterface = () => {
         // Otherwise, just update the current chat (no prompt)
 
         try {
-            const response = await fetch('http://localhost:5000/save_chat', {
+            const response = await fetch('/save_chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title })
@@ -144,7 +144,7 @@ const ChatInterface = () => {
         if (!confirm('Clear current chat? (Unsaved messages will be lost)')) return;
 
         try {
-            const response = await fetch('http://localhost:5000/clear_chat', {
+            const response = await fetch('/clear_chat', {
                 method: 'POST'
             });
             const data = await response.json();
@@ -162,7 +162,7 @@ const ChatInterface = () => {
 
     const handleLoadChat = async (filename) => {
         try {
-            const response = await fetch('http://localhost:5000/load_chat', {
+            const response = await fetch('/load_chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename })
