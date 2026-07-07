@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: Force Python to output stdout/stderr using UTF-8 encoding to prevent emoji print crashes on Windows
+set PYTHONIOENCODING=utf-8
+
 cd /d "%~dp0"
 
 echo ==========================================================
@@ -8,7 +11,7 @@ echo   NIRVANA AI - LOCAL ASSISTANT LAUNCHER
 echo ==========================================================
 echo.
 
-:: Step 1: Check Python installation
+REM Step 1 Check Python installation
 where python >nul 2>nul
 if errorlevel 1 (
     echo [ERROR] Python is not installed or not added to your PATH.
@@ -17,18 +20,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Step 2: Check Node.js and npm installation (needed for frontend)
+REM Step 2 Check Node.js and npm installation
 where npm >nul 2>nul
 if errorlevel 1 (
     echo [ERROR] Node.js/npm is not installed or not added to your PATH.
-    echo Please install Node.js (which includes npm) and try again.
+    echo Please install Node.js and try again.
     pause
     exit /b 1
 )
 
-:: Step 3: Handle Python Virtual Environment (.venv)
+REM Step 3 Handle Python Virtual Environment
 if not exist .venv (
-    echo [1/3] Creating Python virtual environment (.venv)...
+    echo [1/3] Creating Python virtual environment...
     python -m venv .venv
     if errorlevel 1 (
         echo [ERROR] Failed to create virtual environment.
@@ -37,10 +40,10 @@ if not exist .venv (
     )
     echo Virtual environment created successfully.
 ) else (
-    echo [1/3] Virtual environment (.venv) already exists.
+    echo [1/3] Virtual environment already exists.
 )
 
-:: Step 4: Install/Update Python dependencies
+REM Step 4 Install or Update Python dependencies
 echo [2/3] Checking and installing Python dependencies...
 call .venv\Scripts\activate.bat
 pip install -r requirements.txt
@@ -50,7 +53,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Step 5: Check and Install Frontend dependencies
+REM Step 5 Check and Install Frontend dependencies
 if not exist frontend\node_modules (
     echo [3/3] Frontend node_modules not found. Installing frontend dependencies...
     cd frontend
@@ -65,7 +68,7 @@ if not exist frontend\node_modules (
     echo [3/3] Frontend dependencies already installed.
 )
 
-:: Step 6: Start the servers and open the browser
+REM Step 6 Start the servers and open the browser
 echo.
 echo ==========================================================
 echo Launching servers and opening browser...
@@ -78,12 +81,10 @@ echo [NOTE] Press Ctrl+C in this command window to stop both servers.
 echo ==========================================================
 echo.
 
-:: Start a background task to wait 3 seconds (giving the servers time to boot)
-:: and then automatically open the default browser to the web UI.
+REM Start a background task to wait 3 seconds and open the browser
 start /b cmd /c "ping 127.0.0.1 -n 4 >nul && start http://localhost:5173"
 
-:: Run the Flask and Vite servers (blocks until exit)
+REM Run the Flask and Vite servers
 python app.py
 
-:: If the app exits, pause so the user can read any potential error messages
 pause
